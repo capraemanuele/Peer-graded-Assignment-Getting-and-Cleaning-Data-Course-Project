@@ -1,0 +1,83 @@
+library(dplyr)
+
+setwd("C:/Users/ibba cnr/Desktop/COURSERA/Getting and Cleaning Data COURSE/Pree_grade_assignament")
+
+##############################################################################
+# download zip file 
+filename <- "getdata_dataset.zip"
+
+zipUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+
+if (!file.exists(filename)) {
+        download.file(zipUrl, destfile = "C:/Users/ibba cnr/Desktop/COURSERA/Getting and Cleaning Data COURSE/Pree_grade_assignament/filename", method="curl")
+}
+
+#unzip file
+unzip("C:/Users/ibba cnr/Desktop/COURSERA/Getting and Cleaning Data COURSE/Pree_grade_assignament/filename")
+
+##############################################################################
+#Read data
+
+# training data
+trainingSubjects <- read.table("UCI HAR Dataset/train/subject_train.txt")
+trainingValues <- read.table("UCI HAR Dataset/train/X_train.txt")
+trainingActivity <- read.table("UCI HAR Dataset/train/y_train.txt")
+
+#test data
+testSubjects <- read.table("UCI HAR Dataset/test/subject_test.txt")
+testValues <- read.table("UCI HAR Dataset/test/X_test.txt")
+testActivity <- read.table("UCI HAR Dataset/test/y_test.txt")
+
+# features, text labels not converted to factors
+features <- read.table("UCI HAR Dataset/features.txt", as.is = TRUE)
+
+# activity labels
+activities <- read.table("UCI HAR Dataset/activity_labels.txt")
+colnames(activities) <- c("activityId", "activityLabel")
+
+
+
+##############################################################################
+#Merges the training and the test sets to create one data set
+
+# training data
+TrainingMerged <- cbind(trainingSubjects, trainingValues, trainingActivity)
+#test data
+
+TestMerged <-cbind(testSubjects, testValues, testActivity)
+#Total
+
+TotalMerged <-rbind(TrainingMerged, TestMerged)
+
+##############################################################################
+#Extracts only the measurements on the mean and standard deviation for each measurement. 
+
+colnames(TotalMerged) <- c("subject", features[, 2], "activity")
+TotalMerged_mean_std <- TotalMerged[, grepl("subject|activity|mean|std", colnames(TotalMerged))]
+
+##############################################################################
+#Uses descriptive activity names to name the activities in the data set
+
+TotalMerged_mean_std$subject <- as.factor(TotalMerged_mean_std$subject)
+TotalMerged_mean_std$activity <- as.factor(TotalMerged_mean_std$activity)
+
+##############################################################################
+#Appropriately labels the data set with descriptive variable names.
+
+column_names <- colnames(TotalMerged_mean_std)
+column_names <- gsub("[\\(\\)-]", "", column_names)
+column_names <- gsub("BodyBody", "Body", column_names)
+colnames(TotalMerged_mean_std)<- column_names
+
+##############################################################################
+#Creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+TotalMerged_mean_std2 <- TotalMerged_mean_std %>% 
+        group_by(subject, activity) %>%
+        summarise_all(funs(mean))
+
+##############################################################################
+# output to file "tidy_data.txt"
+write.table(TotalMerged_mean_std2, "tidy_data.txt", row.names = FALSE, 
+quote = FALSE)
+
